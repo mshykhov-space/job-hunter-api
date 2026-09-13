@@ -1,155 +1,36 @@
 # Job Hunter API
 
-Kotlin Spring Boot backend for job vacancy monitoring and tracking. Part of the [Job Hunter](https://github.com/mshykhov/job-hunter) system.
+Kotlin/Spring Boot API for [Job Hunter](https://github.com/mshykhov/job-hunter). It accepts normalized vacancy data, persists and matches jobs, and exposes public browsing plus authenticated job-management endpoints.
 
-## Overview
+## Run locally
 
-REST API that receives scraped job listings from n8n workflows, matches them to users via cold filter + AI (Claude Haiku), and provides user-facing endpoints for job tracking and preference management.
+Requires JDK 21 and Docker.
 
-## Tech Stack
-
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| Kotlin | 2.1 | Language |
-| Spring Boot | 3.5 | Framework |
-| Spring AI | 1.1 | AI integrations and MCP transport |
-| Spring Data JPA | - | Database access |
-| PostgreSQL | 16 | Database |
-| Flyway | - | Schema migrations |
-| Anthropic SDK | 2.0 | AI filtering (Claude Haiku) |
-| Auth0 / OAuth2 | - | Authorization |
-| SpringDoc OpenAPI | 2.8 | API documentation |
-| Testcontainers | - | Integration testing |
-
-## Quick Start
-
-```bash
-# Start PostgreSQL
-cp .env.example .env
+```sh
 docker compose up -d
-
-# Run the application
-./gradlew bootRun --args='--spring.profiles.active=local'
+OIDC_ENABLED=false ./gradlew bootRun --args='--spring.profiles.active=local --server.address=127.0.0.1'
 ```
 
-## API Documentation
+This command disables authentication for local development and binds the API to loopback. The local profile listens on `http://localhost:8095`. Swagger UI is available at `/swagger-ui`, and the OpenAPI document at `/api-docs`.
 
-Swagger UI: [http://localhost:8095/swagger-ui](http://localhost:8095/swagger-ui)
+## Architecture
 
-OpenAPI spec: [http://localhost:8095/api-docs](http://localhost:8095/api-docs)
+Controllers form the HTTP boundary, application services own vacancy and preference rules, and infrastructure adapters provide persistence, security, AI providers, and observability. PostgreSQL is the source of truth; Flyway manages schema changes.
 
-The stateless MCP endpoint is `/mcp` and requires the dedicated automation
-health-reporting scope when OIDC is enabled.
+The API also contains authenticated contracts for a separately configured automation runner. Those endpoints keep runner leases and recovery state in the API; they do not grant browser access or application submission.
 
-## Project Structure
+## Configuration
 
-```
-src/main/kotlin/com/mshykhov/jobhunter/
-├── api/rest/                  # HTTP layer (controllers + DTOs)
-│   ├── job/                   # Job ingest + user job endpoints
-│   ├── criteria/              # Search criteria for n8n
-│   ├── preference/            # User preference endpoints
-│   └── exception/             # Global error handling
-├── application/               # Business domain (grouped by feature)
-│   ├── job/                   # JobService, JobEntity, JobRepository, JobFacade
-│   ├── user/                  # UserEntity, UserRepository, UserFacade
-│   ├── userjob/               # UserJobService, UserJobEntity, status tracking
-│   ├── preference/            # PreferenceService, UserPreferenceEntity
-│   ├── criteria/              # SearchCriteriaService
-│   ├── matching/              # JobMatchingService (cold + AI filter pipeline)
-│   └── common/                # Shared: NotFoundException, ValueMappedEnum, utils
-└── infrastructure/            # Technical concerns
-    ├── ai/                    # ClaudeClient, AiConfig, AiProperties
-    ├── security/              # SecurityConfig, Auth0Properties
-    └── config/                # OpenApi, Clock, JpaAuditing, Scheduling, Web
-```
+`docker-compose.yml` starts PostgreSQL on port 5440 with the local profile's database defaults. The example `.env` is a reference; `bootRun` does not load it automatically. Export settings into the process environment when overriding configuration. Set `OIDC_ENABLED=true` and provide `OIDC_ISSUERS` and `OIDC_AUDIENCE` when testing an OIDC-protected deployment. AI and material-encryption settings are optional unless their corresponding features are enabled.
 
-## API Endpoints
+See the [documentation map](docs/README.md) for feature contracts and operational guides.
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/jobs/ingest` | Batch ingest jobs from n8n |
-| `GET` | `/jobs` | User's matched jobs (with optional status filter) |
-| `PATCH` | `/jobs/{id}/status` | Update job status (NEW/APPLIED/IRRELEVANT) |
-| `GET` | `/criteria?source={SOURCE}` | Aggregated search criteria for n8n |
-| `GET` | `/preferences` | Get user preferences |
-| `PUT` | `/preferences` | Save user preferences |
-| `POST` | `/preferences/normalize` | AI-normalize raw text to structured preferences |
-| `PUT` / `DELETE` | `/automation/delegation` | Enable or revoke owner automation health delegation |
-| `GET` | `/automation/status` | Read the owner-only automation health projection |
-| `POST` | `/automation/runner/session` | Start a fenced runner generation |
-| `PUT` | `/automation/runner/heartbeat` | Report a fenced, idempotent runner heartbeat |
-| `POST` / `GET` | `/automation/workflows/runs` | Create or list owner-only synthetic recovery runs |
-| `GET` | `/automation/workflows/runs/{id}` | Inspect durable progress, attempts, checkpoints, and events |
-| `POST` | `/automation/workflows/runs/{id}/{pause,resume,stop}` | Control an owner workflow |
-| `POST` | `/automation/runner/work-items/claims` | Claim the next API-owned workflow lease |
-| `POST` | `/automation/runner/work-items/{id}/{heartbeat,checkpoints,complete,fail}` | Advance fenced runner work |
-| `POST` | `/automation/materials/profile` | Import an immutable private candidate bundle |
-| `POST` | `/automation/materials/claims` | Claim the next queued compilation request |
-| `POST` | `/jobs/{jobId}/materials` | Queue or regenerate all or selected application materials |
-| `GET` | `/jobs/{jobId}/materials/revisions` | List immutable package revisions |
-| `POST` | `/materials/revisions/{id}/improve-sol` | Explicitly request one Sol improvement |
-| `GET` | `/materials/revisions/{id}/artifacts/{kind}` | Download an encrypted revision artifact |
-| `GET` | `/actuator/health` | Health check |
+## Verify
 
-## Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DB_HOST` | `localhost` | PostgreSQL host |
-| `DB_PORT` | `5440` | PostgreSQL port |
-| `DB_NAME` | `jobhunter` | Database name |
-| `DB_USERNAME` | `jobhunter` | Database user |
-| `DB_PASSWORD` | `jobhunter` | Database password |
-| `SERVER_PORT` | `8080` (`8095` in local profile) | Application port |
-| `AUTOMATION_ENABLED` | `false` | Enable the private automation boundary |
-| `AUTOMATION_OWNER_ISSUER` | - | Exact interactive owner OIDC issuer |
-| `AUTOMATION_OWNER_SUBJECT` | - | Exact immutable owner OIDC subject |
-| `AUTOMATION_RUNNER_ISSUER` | - | Exact dedicated runner OIDC issuer |
-| `MATERIAL_ENCRYPTION_KEY` | - | Base64-encoded 32-byte key for private profiles and artifacts |
-| `MATERIAL_MAX_ARTIFACT_BYTES` | `5242880` | Per-artifact upload limit |
-| `AUTH0_ENABLED` | `true` | Enable/disable Auth0 |
-| `AUTH0_ISSUER` | - | Auth0 issuer URL |
-| `AUTH0_AUDIENCE` | - | Auth0 audience |
-| `AI_ENABLED` | `false` | Enable Claude AI filtering |
-| `ANTHROPIC_AUTH_TOKEN` | - | OAuth token from `claude setup-token` |
-
-Application packages are versioned and immutable. Candidate facts, vacancy bodies, owner edits, and
-generated artifacts are encrypted with AES-256-GCM before persistence. The machine scope can only
-claim, heartbeat, fail, and complete leased work; owner endpoints remain bound to the interactive user.
-
-### Durable automation workflows
-
-PostgreSQL is the only durable workflow store. A synthetic recovery run contains
-one work item with the ordered `PREPARE`, `EXECUTE`, and `VERIFY` checkpoints.
-Claims have a 60-second lease, are fenced by the current runner generation, and
-are retried at most three times. Starting a new runner session immediately closes
-older active attempts and requeues their unfinished work. Checkpoint UUIDs make a
-response replay idempotent, while a unique step index prevents completing the same
-step twice.
-
-The owner may pause, resume, or stop a run. Pause and stop revoke the current lease
-inside the same transaction; stop is terminal. Every accepted transition appends
-a bounded event in the same PostgreSQL transaction. This slice has no external
-side effect, so it does not add a delivery outbox yet. An outbox is required before
-a later slice introduces an external write.
-
-The workflow endpoints do not navigate to job sites, fill forms, solve challenges,
-or submit applications. Those capabilities remain outside this recovery skeleton.
-
-## Agent Configuration
-
-`.rulesync/` is the canonical source for repository instructions and scoped rules.
-`CLAUDE.md`, `AGENTS.md`, and `.claude/rules/` are generated projections and must not
-be edited directly.
-
-```bash
-npm ci
-npm run rulesync:dry-run
-npm run rulesync:generate
-npm run rulesync:verify
+```sh
+./gradlew test
 ```
 
 ## License
 
-MIT
+[MIT](LICENSE)
