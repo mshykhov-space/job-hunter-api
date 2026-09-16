@@ -7,6 +7,8 @@ import java.time.Duration
 @ConfigurationProperties(prefix = "jobhunter.ai.providers")
 data class AiProviderProperties(
     val codexBaseUrl: String = "",
+    val groqBaseUrl: String = "https://api.groq.com/openai",
+    val nvidiaBaseUrl: String = "https://integrate.api.nvidia.com",
     val geminiBaseUrl: String = "",
     val retryMaxAttempts: Int = 2,
     val retryBackoff: Duration = Duration.ofSeconds(1),
@@ -16,6 +18,8 @@ data class AiProviderProperties(
     fun baseUrlFor(provider: AiProvider): String? =
         when (provider) {
             AiProvider.CODEX -> codexBaseUrl.takeIf { it.isNotBlank() }?.let(::normalizeBaseUrl)
+            AiProvider.GROQ -> groqBaseUrl.takeIf { it.isNotBlank() }?.let(::normalizeBaseUrl)
+            AiProvider.NVIDIA -> nvidiaBaseUrl.takeIf { it.isNotBlank() }?.let(::normalizeBaseUrl)
             AiProvider.GEMINI -> geminiBaseUrl.takeIf { it.isNotBlank() }?.let(::normalizeBaseUrl)
             AiProvider.OPENAI -> null
         }

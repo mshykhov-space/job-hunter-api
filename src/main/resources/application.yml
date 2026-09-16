@@ -87,6 +87,8 @@ jobhunter:
       concurrency: ${AI_MATCHING_CONCURRENCY:10}
     providers:
       codex-base-url: ${AI_CODEX_BASE_URL:}
+      groq-base-url: ${AI_GROQ_BASE_URL:https://api.groq.com/openai/}
+      nvidia-base-url: ${AI_NVIDIA_BASE_URL:https://integrate.api.nvidia.com/}
       gemini-base-url: ${AI_GEMINI_BASE_URL:https://generativelanguage.googleapis.com/v1beta/openai/}
       retry-max-attempts: ${AI_PROVIDER_RETRY_MAX_ATTEMPTS:2}
       retry-backoff: ${AI_PROVIDER_RETRY_BACKOFF:1s}

@@ -43,6 +43,8 @@ class SettingsControllerIntegrationTest : AbstractIntegrationTest() {
             mockMvc.get("/settings/ai-providers").andExpect {
                 status { isOk() }
                 jsonPath("$.providers[?(@.id=='codex')].requiresApiKey", equalTo(listOf(false)))
+                jsonPath("$.providers[?(@.id=='groq')].requiresApiKey", equalTo(listOf(true)))
+                jsonPath("$.providers[?(@.id=='nvidia')].requiresApiKey", equalTo(listOf(true)))
                 jsonPath("$.providers[?(@.id=='openai')].requiresApiKey", equalTo(listOf(true)))
             }
         }

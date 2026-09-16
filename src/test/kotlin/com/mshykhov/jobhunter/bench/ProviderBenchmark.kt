@@ -25,6 +25,8 @@ import java.time.Instant
 import java.util.function.Supplier
 
 private const val GEMINI_DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+private const val GROQ_DEFAULT_BASE_URL = "https://api.groq.com/openai/"
+private const val NVIDIA_DEFAULT_BASE_URL = "https://integrate.api.nvidia.com/"
 private const val REPORT_PATH = "build/bench/report.md"
 
 private data class ProviderConfig(val provider: AiProvider, val apiKey: String, val models: List<String>, val skipReason: String?)
@@ -38,6 +40,8 @@ class ProviderBenchmark {
             ChatClientFactory(
                 AiProviderProperties(
                     codexBaseUrl = System.getenv("BENCH_CODEX_BASE_URL").orEmpty(),
+                    groqBaseUrl = System.getenv("BENCH_GROQ_BASE_URL")?.takeIf { it.isNotBlank() } ?: GROQ_DEFAULT_BASE_URL,
+                    nvidiaBaseUrl = System.getenv("BENCH_NVIDIA_BASE_URL")?.takeIf { it.isNotBlank() } ?: NVIDIA_DEFAULT_BASE_URL,
                     geminiBaseUrl = resolveGeminiBaseUrl(),
                 ),
                 ObservationRegistry.NOOP,
@@ -153,6 +157,8 @@ class ProviderBenchmark {
 private fun resolveProviderConfigs(): List<ProviderConfig> =
     listOf(
         resolveCodex(),
+        resolveKeyed(AiProvider.GROQ, "BENCH_GROQ_KEY", "BENCH_GROQ_MODELS"),
+        resolveKeyed(AiProvider.NVIDIA, "BENCH_NVIDIA_KEY", "BENCH_NVIDIA_MODELS"),
         resolveKeyed(AiProvider.OPENAI, "BENCH_OPENAI_KEY", "BENCH_OPENAI_MODELS"),
         resolveKeyed(AiProvider.GEMINI, "BENCH_GEMINI_KEY", "BENCH_GEMINI_MODELS"),
     )

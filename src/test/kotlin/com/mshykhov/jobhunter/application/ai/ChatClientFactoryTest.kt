@@ -55,6 +55,20 @@ class ChatClientFactoryTest {
             assertThrows<AiNotConfiguredException> { factory.createForProvider(provider) }
         }
 
+        @Test
+        fun `should build clients for Groq and NVIDIA rows`() {
+            val groq = TestFixtures.userAiProviderEntity(provider = AiProvider.GROQ, apiKey = "gsk-test", modelId = "openai/gpt-oss-120b")
+            val nvidia =
+                TestFixtures.userAiProviderEntity(
+                    provider = AiProvider.NVIDIA,
+                    apiKey = "nvapi-test",
+                    modelId = "nvidia/nemotron-3.5-lightning-30b-a3b",
+                )
+
+            assertNotNull(factory.createForProvider(groq))
+            assertNotNull(factory.createForProvider(nvidia))
+        }
+
         @ParameterizedTest
         @ValueSource(strings = ["gpt-5-nano", "gpt-5", "o1-mini", "o3-mini", "o4-mini"])
         fun `should create client for reasoning models without error`(modelId: String) {

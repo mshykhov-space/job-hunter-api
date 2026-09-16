@@ -46,7 +46,7 @@ class ChatClientFactory(private val aiProviderProperties: AiProviderProperties, 
             OpenAiChatModel
                 .builder()
                 .openAiApi(builder.build())
-                .defaultOptions(buildOptions(provider.modelId, useCase))
+                .defaultOptions(buildOptions(provider.provider, provider.modelId, useCase))
                 .retryTemplate(retryTemplate)
                 .observationRegistry(observationRegistry)
                 .build()
@@ -94,19 +94,25 @@ class ChatClientFactory(private val aiProviderProperties: AiProviderProperties, 
     private fun baseUrlEnvVarFor(provider: AiProvider): String =
         when (provider) {
             AiProvider.CODEX -> "AI_CODEX_BASE_URL"
+            AiProvider.GROQ -> "AI_GROQ_BASE_URL"
+            AiProvider.NVIDIA -> "AI_NVIDIA_BASE_URL"
             AiProvider.GEMINI -> "AI_GEMINI_BASE_URL"
             AiProvider.OPENAI -> "AI_OPENAI_BASE_URL"
         }
 
     private fun buildOptions(
+        provider: AiProvider,
         modelId: String,
         useCase: AiUseCase,
     ): OpenAiChatOptions {
         val builder = OpenAiChatOptions.builder().model(modelId)
+        if (provider == AiProvider.NVIDIA) {
+            builder.extraBody(mapOf("chat_template_kwargs" to mapOf("enable_thinking" to false)))
+        }
         if (isReasoningModel(modelId)) {
-            builder.reasoningEffort(useCase.reasoningEffort)
+            builder.reasoningEffort(useCase.reasoningEffort).maxCompletionTokens(useCase.maxCompletionTokens)
         } else {
-            builder.temperature(useCase.temperature)
+            builder.temperature(useCase.temperature).maxTokens(useCase.maxCompletionTokens)
         }
         return builder.build()
     }

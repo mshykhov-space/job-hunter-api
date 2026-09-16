@@ -64,6 +64,12 @@ spent by a normal test run:
 |---|---|---|
 | `BENCH_CODEX_BASE_URL` | CLIProxyAPI base URL (host root, no `/v1`) | unset - provider skipped |
 | `BENCH_CODEX_MODELS` | Comma-separated model ids to try | every `AiModel` entry for CODEX |
+| `BENCH_GROQ_KEY` | Groq API key | unset - provider skipped |
+| `BENCH_GROQ_MODELS` | Comma-separated Groq model ids | every `AiModel` entry for GROQ |
+| `BENCH_GROQ_BASE_URL` | Groq OpenAI-compatible endpoint | `https://api.groq.com/openai/` |
+| `BENCH_NVIDIA_KEY` | NVIDIA Build API key | unset - provider skipped |
+| `BENCH_NVIDIA_MODELS` | Comma-separated NVIDIA model ids | every `AiModel` entry for NVIDIA |
+| `BENCH_NVIDIA_BASE_URL` | NVIDIA OpenAI-compatible endpoint | `https://integrate.api.nvidia.com/` |
 | `BENCH_OPENAI_KEY` | OpenAI API key | unset - provider skipped |
 | `BENCH_OPENAI_MODELS` | Comma-separated model ids to try | every `AiModel` entry for OPENAI |
 | `BENCH_GEMINI_KEY` | Gemini API key | unset - provider skipped |
@@ -112,3 +118,18 @@ are a real cost too, but a quieter one.
 This is one person's judgement on ten jobs. Treat the numbers as a smoke test
 that catches an obviously broken provider or model, not as a leaderboard for
 picking the "best" model in general.
+
+## NVIDIA soak test
+
+After the ten-job benchmark passes, a bounded read-only soak test can measure the
+hosted endpoint over several hours without touching the production database:
+
+```bash
+NVIDIA_API_KEY=... python3 -u scripts/nvidia-soak.py \
+  --duration-hours 8 --interval-seconds 30 --max-requests 1000
+```
+
+The runner cycles through the offline ground-truth fixture, writes one JSONL record
+per request under `build/nvidia-soak/`, captures latency, HTTP status, token usage and
+any rate-limit headers, and writes a summary beside the log. It stops after five
+consecutive `429` responses, on the duration/request bound, or on `SIGINT`/`SIGTERM`.

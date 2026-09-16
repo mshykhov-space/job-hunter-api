@@ -44,7 +44,7 @@ n8n scrapers ──POST /jobs/ingest──▶ JobEntity (dedup by URL)
 | `application/matching/ColdFilterChain` | Deterministic pre-filters — reject before AI spend |
 | `application/matching/ColdFilterRetroService` | Handles `PreferenceChangedEvent` after commit on a bounded single-worker executor, re-runs the cold filter over the user's NEW groups in fixed-size chunks, and deletes the ones that stopped passing |
 | `application/ai/JobRelevanceEvaluator` | Scoring system prompt + Spring AI `.entity()` structured output |
-| `application/ai/ChatClientFactory` | Per-user OpenAI-compatible client; reasoning models get `reasoning_effort`, others `temperature` (per `AiUseCase`) |
+| `application/ai/ChatClientFactory` | Per-user OpenAI-compatible client; reasoning models get `reasoning_effort`, others `temperature` (per `AiUseCase`). Responses are bounded per use case; NVIDIA disables chat-template thinking for predictable latency |
 | `application/ai/UserAiProviderEntity` | BYOK: ordered per-user AI provider chain row - provider, priority, model id, encrypted API key (optional for keyless providers) |
 
 ## Behaviour Notes
