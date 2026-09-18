@@ -8,7 +8,7 @@ The control plane starts with every source disabled. Enable only deployed worker
 SCRAPING_ENABLED_SOURCES=linkedin,dou
 ```
 
-Supported source IDs are `djinni`, `dou`, `euremotejobs`, `justjoinit`, `landingjobs`, `linkedin`, `nofluffjobs`, and `web3career`. The default cadence is 15 minutes, leases last 5 minutes, successful incremental queries overlap the previous successful run start by 24 hours, and terminal run metadata is retained for 30 days.
+Supported source IDs are `djinni`, `dou`, `euremotejobs`, `justjoinit`, `landingjobs`, `linkedin`, `nofluffjobs`, and `web3career`. The default cadence is 15 minutes, leases last 5 minutes, and every new run receives a fixed one-hour lookback through `since`, including the first run. `SCRAPING_LOOKBACK` configures that window. Retries keep the original run's `since`, criteria, and checkpoint. Terminal run metadata is retained for 30 days.
 
 ## Worker API
 
@@ -45,3 +45,5 @@ Timestamp gauges are `0` until the corresponding event occurs. Use source-specif
 ## Operational checks
 
 Before enabling a source, deploy a worker version that implements the exact lease and idempotency contract. Verify `/scraping/status` shows the source enabled, then watch its first `runs_started_total`, terminal count, last-success timestamp, and accepted/fetched ratio. Disable the source by removing it from `SCRAPING_ENABLED_SOURCES` and restarting the API. Heartbeat, batch, and completion calls are then fenced with `409`; fail remains available to release the current attempt without consuming its retry budget. The active run and its checkpoint remain available if the source is enabled again.
+
+Migration V32 terminates any active run created under the previous history-overlap contract with `LOOKBACK_CONTRACT_CHANGED`, preserving its checkpoint and counters as audit data and making the source immediately due. Keep sources disabled while deploying the API and worker, then enable them individually. The first claim creates a fresh run with the configured lookback; no old run is marked successful and no application data is reset.

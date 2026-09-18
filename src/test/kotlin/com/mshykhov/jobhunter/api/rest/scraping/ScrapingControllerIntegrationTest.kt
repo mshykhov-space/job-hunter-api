@@ -82,7 +82,7 @@ class ScrapingControllerIntegrationTest : AbstractIntegrationTest() {
                     jsonPath("$.criteria.categories[0]") { value("kotlin") }
                     jsonPath("$.criteria.locations[0]") { value("Remote") }
                     jsonPath("$.checkpoint") { isMap() }
-                    jsonPath("$.since") { doesNotExist() }
+                    jsonPath("$.since") { isNotEmpty() }
                 }.andReturn()
         val claim = objectMapper.readTree(claimResult.response.contentAsString)
         val runId = claim["runId"].asText()

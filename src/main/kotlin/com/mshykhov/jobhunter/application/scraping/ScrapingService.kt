@@ -71,11 +71,7 @@ class ScrapingService(
             facade.saveSource(state)
             return null
         }
-        val since =
-            facade
-                .findLatestSuccessfulRun(source.value)
-                ?.startedAt
-                ?.minus(properties.sinceOverlap)
+        val since = now.minus(properties.lookback)
         val run =
             facade.saveRun(
                 ScrapingRunEntity(

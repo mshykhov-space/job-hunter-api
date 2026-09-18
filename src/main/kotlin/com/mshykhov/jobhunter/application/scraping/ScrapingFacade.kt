@@ -31,9 +31,6 @@ class ScrapingFacade(
 
     fun findLatestRun(source: String): ScrapingRunEntity? = runRepository.findTopBySourceStateSourceOrderByStartedAtDesc(source)
 
-    fun findLatestSuccessfulRun(source: String): ScrapingRunEntity? =
-        runRepository.findTopBySourceStateSourceAndStatusOrderByStartedAtDesc(source, ScrapingRunStatus.SUCCEEDED)
-
     fun findBatch(id: UUID): ScrapingBatchEntity? = batchRepository.findById(id).orElse(null)
 
     @Transactional

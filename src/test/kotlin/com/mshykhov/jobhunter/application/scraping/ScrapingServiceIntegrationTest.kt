@@ -95,6 +95,7 @@ class ScrapingServiceIntegrationTest : AbstractIntegrationTest() {
         assertEquals(first.runId, second.runId)
         assertNotEquals(first.leaseToken, second.leaseToken)
         assertEquals(mapOf("cursor" to "page-2"), second.checkpoint)
+        assertEquals(first.since, second.since)
         assertEquals(2, second.attempt)
         assertEquals(0, service.batch(second.runId, second.leaseToken, batch).acceptedCount)
         assertFailsWith<ScrapingLeaseLostException> { service.heartbeat(first.runId, first.leaseToken) }
@@ -199,7 +200,7 @@ class ScrapingServiceIntegrationTest : AbstractIntegrationTest() {
     }
 
     @Test
-    fun `new run overlaps the prior successful start by twenty four hours`() {
+    fun `every new run uses a one hour lookback including the first`() {
         val first = assertNotNull(service.claim(JobSource.LINKEDIN, "worker-a"))
         val firstStartedAt =
             requireNotNull(
@@ -209,13 +210,23 @@ class ScrapingServiceIntegrationTest : AbstractIntegrationTest() {
                     first.runId,
                 ),
             ).toInstant()
+        assertEquals(firstStartedAt.minusSeconds(3_600), first.since)
+
         service.complete(first.runId, first.leaseToken)
         jdbcTemplate.update(
             "UPDATE scraping_sources SET next_run_at = now() - interval '1 second' WHERE source = 'linkedin'",
         )
 
         val second = assertNotNull(service.claim(JobSource.LINKEDIN, "worker-b"))
-        assertEquals(firstStartedAt.minusSeconds(86_400), second.since)
+        val secondStartedAt =
+            requireNotNull(
+                jdbcTemplate.queryForObject(
+                    "SELECT started_at FROM scraping_runs WHERE id = ?",
+                    java.sql.Timestamp::class.java,
+                    second.runId,
+                ),
+            ).toInstant()
+        assertEquals(secondStartedAt.minusSeconds(3_600), second.since)
     }
 
     @Test

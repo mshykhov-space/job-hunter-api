@@ -23,11 +23,6 @@ interface ScrapingRunRepository : JpaRepository<ScrapingRunEntity, UUID> {
     @Query("select r.sourceState.source from ScrapingRunEntity r where r.id = :id")
     fun findSource(id: UUID): String?
 
-    fun findTopBySourceStateSourceAndStatusOrderByStartedAtDesc(
-        source: String,
-        status: ScrapingRunStatus,
-    ): ScrapingRunEntity?
-
     fun findTopBySourceStateSourceOrderByStartedAtDesc(source: String): ScrapingRunEntity?
 
     @Modifying
