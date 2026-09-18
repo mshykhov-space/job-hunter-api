@@ -69,11 +69,14 @@ class AutomationService(
             ?: return unavailableStatus(enabled = false)
         if (!delegation.healthReportingEnabled) return unavailableStatus(enabled = false)
         val runner = facade.findRunner(delegation.id) ?: return unavailableStatus(enabled = true)
+        val now = Instant.now(clock)
+        val components = healthPolicy.currentComponents(runner.components, now)
+        val state = healthPolicy.overallState(components, now)
         return AutomationStatusResponse(
             enabled = true,
-            state = runner.overallState,
-            reason = runner.overallReason,
-            components = runner.components,
+            state = state,
+            reason = healthPolicy.overallReason(components, state),
+            components = components,
             launcherVersion = runner.launcherVersion,
             lastHeartbeatAt = runner.lastHeartbeatAt,
             lastPreflightSuccessAt = runner.lastPreflightSuccessAt,
