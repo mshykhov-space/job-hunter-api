@@ -15,6 +15,7 @@ import com.mshykhov.jobhunter.support.TestFixtures
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.core.io.ClassPathResource
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.context.TestPropertySource
@@ -227,6 +228,55 @@ class ScrapingServiceIntegrationTest : AbstractIntegrationTest() {
                 ),
             ).toInstant()
         assertEquals(secondStartedAt.minusSeconds(3_600), second.since)
+    }
+
+    @Test
+    fun `lookback migration terminates legacy run and fences its lease before a fresh claim`() {
+        val legacy = assertNotNull(service.claim(JobSource.LINKEDIN, "legacy-worker"))
+        service.batch(
+            legacy.runId,
+            legacy.leaseToken,
+            ScrapingBatchCommand(UUID.randomUUID(), emptyList(), mapOf("cursor" to "legacy-page"), 7),
+        )
+        jdbcTemplate.update("UPDATE scraping_runs SET since_at = NULL WHERE id = ?", legacy.runId)
+
+        val migration =
+            ClassPathResource("db/migration/V32__terminate_legacy_scraping_runs.sql")
+                .inputStream
+                .bufferedReader()
+                .use { it.readText() }
+        jdbcTemplate.execute(migration)
+
+        assertEquals(
+            "FAILED",
+            jdbcTemplate.queryForObject("SELECT status FROM scraping_runs WHERE id = ?", String::class.java, legacy.runId),
+        )
+        assertEquals(
+            "LOOKBACK_CONTRACT_CHANGED",
+            jdbcTemplate.queryForObject("SELECT failure_code FROM scraping_runs WHERE id = ?", String::class.java, legacy.runId),
+        )
+        assertEquals(
+            """{"cursor": "legacy-page"}""",
+            jdbcTemplate.queryForObject("SELECT checkpoint::text FROM scraping_runs WHERE id = ?", String::class.java, legacy.runId),
+        )
+        assertEquals(7, jdbcTemplate.queryForObject("SELECT fetched_count FROM scraping_runs WHERE id = ?", Int::class.java, legacy.runId))
+        assertEquals(1, jdbcTemplate.queryForObject("SELECT count(*) FROM scraping_batches WHERE run_id = ?", Int::class.java, legacy.runId))
+        assertEquals(1, jdbcTemplate.queryForObject("SELECT runs_failed FROM scraping_sources WHERE source = 'linkedin'", Int::class.java))
+        assertEquals(7, jdbcTemplate.queryForObject("SELECT fetched_count FROM scraping_sources WHERE source = 'linkedin'", Int::class.java))
+        assertFailsWith<ScrapingLeaseLostException> { service.heartbeat(legacy.runId, legacy.leaseToken) }
+
+        val fresh = assertNotNull(service.claim(JobSource.LINKEDIN, "fresh-worker"))
+        assertNotEquals(legacy.runId, fresh.runId)
+        assertEquals(emptyMap(), fresh.checkpoint)
+        val freshStartedAt =
+            requireNotNull(
+                jdbcTemplate.queryForObject(
+                    "SELECT started_at FROM scraping_runs WHERE id = ?",
+                    java.sql.Timestamp::class.java,
+                    fresh.runId,
+                ),
+            ).toInstant()
+        assertEquals(freshStartedAt.minusSeconds(3_600), fresh.since)
     }
 
     @Test
