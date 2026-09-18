@@ -69,6 +69,17 @@ management:
       endpoint: ${OTLP_TRACES_ENDPOINT:}
 
 jobhunter:
+  scraping:
+    enabled-sources: ${SCRAPING_ENABLED_SOURCES:}
+    schedule-interval: ${SCRAPING_SCHEDULE_INTERVAL:15m}
+    lease-duration: ${SCRAPING_LEASE_DURATION:5m}
+    since-overlap: ${SCRAPING_SINCE_OVERLAP:24h}
+    retry-backoffs: ${SCRAPING_RETRY_BACKOFFS:1m,5m}
+    max-attempts: ${SCRAPING_MAX_ATTEMPTS:3}
+    max-batch-size: ${SCRAPING_MAX_BATCH_SIZE:250}
+    max-batch-request-size: ${SCRAPING_MAX_BATCH_REQUEST_SIZE:8MB}
+    retention-period: ${SCRAPING_RETENTION_PERIOD:30d}
+    retention-interval: ${SCRAPING_RETENTION_INTERVAL:24h}
   materials:
     encryption-key: ${MATERIAL_ENCRYPTION_KEY:}
     max-artifact-bytes: ${MATERIAL_MAX_ARTIFACT_BYTES:5242880}

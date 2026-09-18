@@ -14,6 +14,7 @@ import com.mshykhov.jobhunter.application.statistics.DecisionOutcome
 import com.mshykhov.jobhunter.application.statistics.UserJobGroupDecisionFacade
 import com.mshykhov.jobhunter.application.userjob.UserJobGroupEntity
 import com.mshykhov.jobhunter.application.userjob.UserJobGroupFacade
+import com.mshykhov.jobhunter.application.userjob.UserJobStatus
 import com.mshykhov.jobhunter.infrastructure.ai.AiProperties
 import com.mshykhov.jobhunter.infrastructure.matching.MatchingProperties
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -152,6 +153,7 @@ class JobMatchingService(
         val userJobGroups = mutableListOf<UserJobGroupEntity>()
 
         for (preference in preferences) {
+            val existing = existingByUserId[preference.user.id]
             val filterResult = coldFilterChain.evaluate(representative, preference)
             if (filterResult is FilterResult.Rejected) {
                 logger.debug {
@@ -165,11 +167,11 @@ class JobMatchingService(
                     DecisionOutcome.COLD_REJECTED,
                     coldFilter = filterResult.filter,
                 )
+                removeUnreviewedMatch(existing)
                 stats.coldRejected++
                 continue
             }
 
-            val existing = existingByUserId[preference.user.id]
             val chain = userChains[preference.user.id]
 
             when {
@@ -237,6 +239,7 @@ class JobMatchingService(
                 aiScore = aiResult.score,
                 inferredRemote = aiResult.inferredRemote,
             )
+            removeUnreviewedMatch(existing)
             stats.postAiRejected++
             return null
         }
@@ -258,6 +261,15 @@ class JobMatchingService(
             group = group,
             aiRelevanceScore = aiResult.score,
             aiReasoning = aiResult.reasoning,
+        )
+    }
+
+    private fun removeUnreviewedMatch(existing: UserJobGroupEntity?) {
+        if (existing == null) return
+        userJobGroupFacade.deleteByIdsAndUserIdAndStatus(
+            listOf(existing.id),
+            existing.user.id,
+            UserJobStatus.NEW,
         )
     }
 

@@ -1,0 +1,3 @@
+ALTER TABLE job_groups
+    ALTER COLUMN title TYPE VARCHAR(500),
+    ALTER COLUMN company TYPE VARCHAR(300);

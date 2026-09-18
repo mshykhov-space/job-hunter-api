@@ -7,6 +7,18 @@ import java.time.Instant
 
 @Component
 class AutomationHealthPolicy(private val properties: AutomationProperties) {
+    fun currentComponents(
+        components: Map<AutomationComponent, AutomationComponentSnapshot>,
+        now: Instant,
+    ): Map<AutomationComponent, AutomationComponentSnapshot> =
+        components.mapValues { (component, snapshot) ->
+            if (isFresh(snapshot, component, now)) {
+                snapshot
+            } else {
+                snapshot.copy(state = AutomationState.UNAVAILABLE, reason = AutomationReason.INVALID_REPORT)
+            }
+        }
+
     fun overallState(
         components: Map<AutomationComponent, AutomationComponentSnapshot>,
         now: Instant,

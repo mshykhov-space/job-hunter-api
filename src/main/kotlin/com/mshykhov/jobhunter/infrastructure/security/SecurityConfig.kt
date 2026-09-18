@@ -69,6 +69,8 @@ class SecurityConfig(private val oidcProperties: OidcProperties, private val obj
                     .hasAuthority("SCOPE_report:automation-health")
                     .requestMatchers("/automation/materials/**")
                     .hasAuthority("SCOPE_report:automation-health")
+                    .requestMatchers("/scraping/**")
+                    .authenticated()
                     .requestMatchers("/jobs/**", "/materials/**", "/criteria/**", "/preferences/**", "/proxies/**", "/settings/**")
                     .authenticated()
                     .anyRequest()

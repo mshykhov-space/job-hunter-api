@@ -28,13 +28,14 @@ import java.util.UUID
 class JobEntity(
     @Id
     private val id: UUID = UUID.randomUUID(),
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     var title: String,
+    @Column(length = 300)
     val company: String? = null,
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id", nullable = false)
     val group: JobGroupEntity,
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 2048)
     val url: String,
     @Column(nullable = false, columnDefinition = "TEXT")
     var description: String,
@@ -44,7 +45,9 @@ class JobEntity(
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "raw_data", nullable = false, columnDefinition = "jsonb")
     var rawData: Map<String, Any?> = emptyMap(),
+    @Column(length = 200)
     var salary: String? = null,
+    @Column(length = 300)
     var location: String? = null,
     var remote: Boolean? = null,
     @Column(name = "published_at")
