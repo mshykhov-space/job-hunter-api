@@ -27,8 +27,9 @@ class JobGroupEntity(
     private val id: UUID = UUID.randomUUID(),
     @Column(name = "group_key", nullable = false, unique = true, length = 64)
     val groupKey: String,
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     val title: String,
+    @Column(length = 300)
     val company: String? = null,
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb")

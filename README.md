@@ -17,11 +17,11 @@ This command disables authentication for local development and binds the API to 
 
 Controllers form the HTTP boundary, application services own vacancy and preference rules, and infrastructure adapters provide persistence, security, AI providers, and observability. PostgreSQL is the source of truth; Flyway manages schema changes.
 
-The API also contains authenticated contracts for a separately configured automation runner. Those endpoints keep runner leases and recovery state in the API; they do not grant browser access or application submission.
+The API also contains authenticated contracts for separately deployed automation and scraping workers. Scraping endpoints keep source schedules, lease fencing, idempotent batch receipts, and recovery checkpoints in PostgreSQL. Workers do not receive database access.
 
 ## Configuration
 
-`docker-compose.yml` starts PostgreSQL on port 5440 with the local profile's database defaults. The example `.env` is a reference; `bootRun` does not load it automatically. Export settings into the process environment when overriding configuration. Set `OIDC_ENABLED=true` and provide `OIDC_ISSUERS` and `OIDC_AUDIENCE` when testing an OIDC-protected deployment. AI and material-encryption settings are optional unless their corresponding features are enabled.
+`docker-compose.yml` starts PostgreSQL on port 5440 with the local profile's database defaults. The example `.env` is a reference; `bootRun` does not load it automatically. Export settings into the process environment when overriding configuration. Set `OIDC_ENABLED=true` and provide `OIDC_ISSUERS` and `OIDC_AUDIENCE` when testing an OIDC-protected deployment. Scraping is disabled until `SCRAPING_ENABLED_SOURCES` lists deployed adapters. AI and material-encryption settings are optional unless their corresponding features are enabled.
 
 See the [documentation map](docs/README.md) for feature contracts and operational guides.
 

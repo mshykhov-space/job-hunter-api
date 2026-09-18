@@ -5,17 +5,23 @@ import com.mshykhov.jobhunter.application.job.JobEntity
 import com.mshykhov.jobhunter.application.job.JobGroupEntity
 import com.mshykhov.jobhunter.application.job.JobSource
 import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.Size
 import java.time.Instant
 
 data class JobIngestRequest(
     @field:NotBlank
+    @field:Size(max = 500)
     val title: String,
+    @field:Size(max = 300)
     val company: String? = null,
     @field:NotBlank
+    @field:Size(max = 2048)
     val url: String,
     val description: String = "",
     val source: JobSource,
+    @field:Size(max = 200)
     val salary: String? = null,
+    @field:Size(max = 300)
     val location: String? = null,
     val remote: Boolean? = null,
     val publishedAt: String? = null,

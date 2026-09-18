@@ -4,6 +4,8 @@ import com.mshykhov.jobhunter.application.common.AiNotConfiguredException
 import com.mshykhov.jobhunter.application.common.AutomationLeaseLostException
 import com.mshykhov.jobhunter.application.common.ConflictException
 import com.mshykhov.jobhunter.application.common.NotFoundException
+import com.mshykhov.jobhunter.application.common.ScrapingLeaseLostException
+import com.mshykhov.jobhunter.application.common.ScrapingSourceDisabledException
 import com.mshykhov.jobhunter.application.common.ServiceUnavailableException
 import com.mshykhov.jobhunter.application.common.StaleAutomationGenerationException
 import com.mshykhov.jobhunter.application.common.ValidationException
@@ -109,6 +111,18 @@ class GlobalExceptionHandler : ResponseEntityExceptionHandler() {
     fun handleAutomationLeaseLost(ex: AutomationLeaseLostException): ResponseEntity<ErrorResponse> {
         log.warn { ex.message }
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ErrorResponse(ex.message.orEmpty(), "AUTOMATION_LEASE_LOST"))
+    }
+
+    @ExceptionHandler(ScrapingLeaseLostException::class)
+    fun handleScrapingLeaseLost(ex: ScrapingLeaseLostException): ResponseEntity<ErrorResponse> {
+        log.warn { ex.message }
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ErrorResponse(ex.message.orEmpty(), "SCRAPING_LEASE_LOST"))
+    }
+
+    @ExceptionHandler(ScrapingSourceDisabledException::class)
+    fun handleScrapingSourceDisabled(ex: ScrapingSourceDisabledException): ResponseEntity<ErrorResponse> {
+        log.warn { ex.message }
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ErrorResponse(ex.message.orEmpty(), "SCRAPING_SOURCE_DISABLED"))
     }
 
     @ExceptionHandler(AuthorizationDeniedException::class)
