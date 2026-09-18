@@ -24,6 +24,7 @@ import com.mshykhov.jobhunter.application.statistics.UserJobGroupDecisionFacade
 import com.mshykhov.jobhunter.application.user.UserEntity
 import com.mshykhov.jobhunter.application.userjob.UserJobGroupEntity
 import com.mshykhov.jobhunter.application.userjob.UserJobGroupFacade
+import com.mshykhov.jobhunter.application.userjob.UserJobStatus
 import com.mshykhov.jobhunter.infrastructure.ai.AiProperties
 import com.mshykhov.jobhunter.infrastructure.matching.MatchingProperties
 import com.mshykhov.jobhunter.support.TestFixtures
@@ -169,7 +170,11 @@ class JobMatchingServiceTest {
             every { userPreferenceFacade.findAll() } returns listOf(preference)
             every { userAiProviderService.chainFor(user.id) } returns listOf(provider)
             every { chatClientFactory.createChain(listOf(provider), AiUseCase.SCORING) } returns chainOf(chatClient)
-            every { userJobGroupFacade.findByGroupId(group.id) } returns emptyList()
+            val existing = TestFixtures.userJobGroupEntity(user = user, group = group)
+            every { userJobGroupFacade.findByGroupId(group.id) } returns listOf(existing)
+            every {
+                userJobGroupFacade.deleteByIdsAndUserIdAndStatus(listOf(existing.id), user.id, UserJobStatus.NEW)
+            } returns 1
             every { jobRelevanceEvaluator.evaluate(job, preference, chainOf(chatClient)) } returns
                 JobRelevanceResult(score = 70, reasoning = "Match but not remote", inferredRemote = false)
             every { jobFacade.updateMatchedAt(any(), any()) } just Runs
@@ -178,6 +183,9 @@ class JobMatchingServiceTest {
             service.processUnmatchedJobs()
 
             verify(exactly = 0) { userJobGroupFacade.saveAll(any()) }
+            verify {
+                userJobGroupFacade.deleteByIdsAndUserIdAndStatus(listOf(existing.id), user.id, UserJobStatus.NEW)
+            }
             verify { decisionFacade.upsert(user, group, listOf(job), DecisionOutcome.AI_REJECTED_REMOTE, null, 70, false) }
         }
 
@@ -258,6 +266,55 @@ class JobMatchingServiceTest {
             verify(exactly = 0) { jobRelevanceEvaluator.evaluate(any(), any(), any()) }
             verify(exactly = 0) { userJobGroupFacade.saveAll(any()) }
             verify { decisionFacade.upsert(user, group, listOf(job), DecisionOutcome.COLD_REJECTED, "source", null, null) }
+        }
+
+        @Test
+        fun `should remove an existing new match when a cold filter rejects it`() {
+            val user = UserEntity(auth0Sub = "user-1")
+            val group = testGroup()
+            val job = testJob(group = group, source = JobSource.DJINNI)
+            val preference = testPreference(user, disabledSources = listOf(JobSource.DJINNI))
+            val existing = TestFixtures.userJobGroupEntity(user = user, group = group)
+
+            every { jobFacade.findUnmatched(200, 5) } returns listOf(job)
+            every { jobFacade.findByGroupIds(listOf(group.id), 1000, 5) } returns listOf(job)
+            every { userPreferenceFacade.findAll() } returns listOf(preference)
+            every { userJobGroupFacade.findByGroupId(group.id) } returns listOf(existing)
+            every {
+                userJobGroupFacade.deleteByIdsAndUserIdAndStatus(listOf(existing.id), user.id, UserJobStatus.NEW)
+            } returns 1
+            every { jobFacade.updateMatchedAt(any(), any()) } just Runs
+
+            service.processUnmatchedJobs()
+
+            verify {
+                userJobGroupFacade.deleteByIdsAndUserIdAndStatus(listOf(existing.id), user.id, UserJobStatus.NEW)
+            }
+        }
+
+        @Test
+        fun `should guard reviewed matches from cold-filter cleanup`() {
+            val user = UserEntity(auth0Sub = "user-1")
+            val group = testGroup()
+            val job = testJob(group = group, source = JobSource.DJINNI)
+            val preference = testPreference(user, disabledSources = listOf(JobSource.DJINNI))
+            val existing =
+                TestFixtures.userJobGroupEntity(user = user, group = group, status = UserJobStatus.APPLIED)
+
+            every { jobFacade.findUnmatched(200, 5) } returns listOf(job)
+            every { jobFacade.findByGroupIds(listOf(group.id), 1000, 5) } returns listOf(job)
+            every { userPreferenceFacade.findAll() } returns listOf(preference)
+            every { userJobGroupFacade.findByGroupId(group.id) } returns listOf(existing)
+            every {
+                userJobGroupFacade.deleteByIdsAndUserIdAndStatus(listOf(existing.id), user.id, UserJobStatus.NEW)
+            } returns 0
+            every { jobFacade.updateMatchedAt(any(), any()) } just Runs
+
+            service.processUnmatchedJobs()
+
+            verify {
+                userJobGroupFacade.deleteByIdsAndUserIdAndStatus(listOf(existing.id), user.id, UserJobStatus.NEW)
+            }
         }
     }
 
