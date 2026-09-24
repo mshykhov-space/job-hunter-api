@@ -1,6 +1,6 @@
 # Job Hunter API
 
-Kotlin/Spring Boot API for [Job Hunter](https://github.com/mshykhov/job-hunter). It accepts normalized vacancy data, persists and matches jobs, and exposes public browsing plus authenticated job-management endpoints.
+Kotlin/Spring Boot API for [Job Hunter](https://github.com/mshykhov-space/job-hunter). It accepts normalized vacancy data, persists and matches jobs, and exposes public browsing plus authenticated job-management endpoints.
 
 ## Run locally
 

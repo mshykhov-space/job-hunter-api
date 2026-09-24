@@ -24,7 +24,7 @@ class OpenApiConfig(private val oidcProperties: OidcProperties) {
                         .title("Job Hunter API")
                         .description("Job vacancy monitoring and tracking system")
                         .version("0.1.0")
-                        .contact(Contact().name("mshykhov").url("https://github.com/mshykhov/job-hunter")),
+                        .contact(Contact().name("mshykhov").url("https://github.com/mshykhov-space/job-hunter")),
                 )
 
         val issuer = oidcProperties.issuers.firstOrNull()?.trimEnd('/')
