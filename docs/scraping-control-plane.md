@@ -27,6 +27,11 @@ A `batchId` is globally unique. Replaying the same ID with identical jobs, check
 
 Lease expiry rotates the token and resumes the persisted checkpoint. The initial claim is attempt 1. Expired claims can be recovered through attempts 2 and 3; another expiry marks the run failed and schedules a fresh run after 15 minutes. Explicit failures retry the same run after 1 minute and 5 minutes, then fail terminally. Calls with an expired or replaced token return `409 SCRAPING_LEASE_LOST`; a disabled source returns `409 SCRAPING_SOURCE_DISABLED`. Other `409 CONFLICT` responses represent idempotency or state conflicts and must not be treated as lease loss. Invalid job field lengths and source mismatches return `400 VALIDATION_ERROR`. Completing an already successful run is idempotent only with the token that completed it.
 
+Claim polling locks the source before its active run. The active-run query uses
+JPQL to compare the source identifier directly, avoiding the derived query's
+outer join and PostgreSQL follow-on locking warnings. Pessimistic write locks,
+transaction boundaries, and fencing remain mandatory.
+
 ## Metrics
 
 All metrics carry one lowercase `source` label and read PostgreSQL state, so process restarts do not reset them:
