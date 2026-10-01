@@ -11,6 +11,7 @@ import java.util.UUID
 
 interface ScrapingRunRepository : JpaRepository<ScrapingRunEntity, UUID> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select r from ScrapingRunEntity r where r.sourceState.source = :source and r.status = :status")
     fun findBySourceStateSourceAndStatus(
         source: String,
         status: ScrapingRunStatus,
