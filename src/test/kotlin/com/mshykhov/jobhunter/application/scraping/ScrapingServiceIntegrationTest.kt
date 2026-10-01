@@ -14,7 +14,10 @@ import com.mshykhov.jobhunter.support.AbstractIntegrationTest
 import com.mshykhov.jobhunter.support.TestFixtures
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.system.CapturedOutput
+import org.springframework.boot.test.system.OutputCaptureExtension
 import org.springframework.core.io.ClassPathResource
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.jdbc.core.JdbcTemplate
@@ -24,6 +27,7 @@ import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -60,6 +64,15 @@ class ScrapingServiceIntegrationTest : AbstractIntegrationTest() {
         )
         jdbcTemplate.update("DELETE FROM user_preferences")
         addCriteria()
+    }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension::class)
+    fun `claim polling locks without follow on warnings`(output: CapturedOutput) {
+        assertNotNull(service.claim(JobSource.LINKEDIN, "worker-a"))
+        assertNull(service.claim(JobSource.LINKEDIN, "worker-b"))
+
+        assertFalse(output.all.contains("HHH000444"), "Claim polling should lock inline without follow-on locking")
     }
 
     @Test
