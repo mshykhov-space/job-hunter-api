@@ -55,6 +55,19 @@ class MatchingMetricsTest {
     }
 
     @Test
+    fun `should retain the production Codex Terra model in evaluation metrics`() {
+        metrics.recordEvaluation(AiProvider.CODEX, "gpt-5.6-terra", "success", Duration.ofMillis(50))
+
+        val counter = registry.get(MatchingMetrics.AI_EVALUATIONS_METRIC)
+            .tags("provider", "CODEX", "model", "gpt-5.6-terra", "outcome", "success").counter()
+        val timer = registry.get(MatchingMetrics.AI_EVALUATION_DURATION_METRIC)
+            .tags("provider", "CODEX", "model", "gpt-5.6-terra").timer()
+
+        assertEquals(1.0, counter.count())
+        assertEquals(1, timer.count())
+    }
+
+    @Test
     fun `should tag with other and keep the raw model id out of the tag when the model is unknown`() {
         metrics.recordEvaluation(AiProvider.OPENAI, "some-user-typed-model", "success", Duration.ofMillis(50))
 
