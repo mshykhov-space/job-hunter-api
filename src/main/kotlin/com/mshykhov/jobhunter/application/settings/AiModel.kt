@@ -34,6 +34,7 @@ enum class AiModel(
 ) {
     GPT_5_6_LUNA("gpt-5.6-luna", "GPT-5.6 Luna", AiProvider.CODEX, 0.0, 0.0, null, 400_000, recommended = true),
     GPT_5_6_SOL("gpt-5.6-sol", "GPT-5.6 Sol", AiProvider.CODEX, 0.0, 0.0, null, 400_000),
+    GPT_5_6_TERRA("gpt-5.6-terra", "GPT-5.6 Terra", AiProvider.CODEX, 0.0, 0.0, null, 272_000),
     GROQ_GPT_OSS_120B("openai/gpt-oss-120b", "GPT-OSS 120B", AiProvider.GROQ, 0.0, 0.0, null, 131_072, recommended = true),
     NVIDIA_NEMOTRON_3_5_LIGHTNING(
         "nvidia/nemotron-3.5-lightning-30b-a3b",

@@ -31,6 +31,13 @@ If nothing appears at all, matching is not running. Check `MATCHING_INTERVAL_MS`
 | Are scrapers delivering | `jobhunter_jobs_ingested_total{source}` |
 | What a single request did end to end | VictoriaTraces, service `job-hunter-api`, span `chat <model>` |
 
+Model labels in matching evaluation counters and timers come from the shared API
+model catalogue, including `gpt-5.6-terra`. Unknown user-supplied model IDs are
+collapsed to `other` to bound metric cardinality. The catalogue also supplies the
+Settings model list; adding an entry does not change an existing provider chain
+or the recommended default. Subscription token counters do not translate directly
+to a percentage of the account's weekly Codex allowance.
+
 Reaching the stores from a laptop:
 
 ```bash
