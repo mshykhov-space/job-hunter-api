@@ -61,7 +61,7 @@ class JobRelevanceEvaluator(private val matchingMetrics: MatchingMetrics) {
             appendLine("## Job")
             appendLine("Title: ${job.title}")
             job.company?.let { appendLine("Company: $it") }
-            appendLine("Description: ${job.description.take(DESCRIPTION_LIMIT)}")
+            appendLine("Description: ${job.description}")
             job.location?.let { appendLine("Location: $it") }
             appendLine("Remote: ${job.remote ?: "unknown — infer from description"}")
             job.salary?.let { appendLine("Salary: $it") }
@@ -86,8 +86,6 @@ class JobRelevanceEvaluator(private val matchingMetrics: MatchingMetrics) {
         }
 
     companion object {
-        private const val DESCRIPTION_LIMIT = 3000
-
         private const val OUTCOME_SUCCESS = "success"
         private const val OUTCOME_QUOTA = "quota"
         private const val OUTCOME_AUTH = "auth"

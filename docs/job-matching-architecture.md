@@ -50,6 +50,7 @@ n8n scrapers ──POST /jobs/ingest──▶ JobEntity (dedup by URL)
 ## Behaviour Notes
 
 - **Group-level scoring** — one AI call per (group, user); representative = job with the longest description.
+- **Complete description** - scoring receives the representative's full description, including work-arrangement requirements at the end. Remote inference must not operate on a truncated prefix, which can hide both fully remote benefits and mandatory office attendance. Provider context-limit failures follow the existing bounded retry policy instead of silently dropping posting text.
 - **Users without AI settings** get `aiRelevanceScore=0` with a cold-only reasoning marker.
 - **remoteOnly enforced twice** — cold filter rejects explicit `remote=false`; post-AI check rejects `inferredRemote=false`. AI backfills `job.remote` when null.
 - **Terminal decision history** - every completed per-user evaluation writes `user_job_group_decisions`, preserving the first group-created `vacancy_seen_at`. Outcomes distinguish cold rejection, post-AI remote rejection, AI scoring, cold-only evaluation, and unknowable legacy rejection. AI failures write no decision and remain retryable. Decision writes complete before `matched_at` is set.

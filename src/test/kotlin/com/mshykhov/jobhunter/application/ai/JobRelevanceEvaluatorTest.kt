@@ -13,12 +13,15 @@ import com.mshykhov.jobhunter.application.preference.UserPreferenceEntity
 import com.mshykhov.jobhunter.application.settings.AiProvider
 import com.mshykhov.jobhunter.application.user.UserEntity
 import com.mshykhov.jobhunter.infrastructure.metrics.MatchingMetrics
+import com.mshykhov.jobhunter.support.TestFixtures
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import org.springframework.ai.chat.client.ChatClient
 import org.springframework.ai.chat.prompt.ChatOptions
 import org.springframework.ai.openai.OpenAiChatOptions
@@ -112,6 +115,27 @@ class JobRelevanceEvaluatorTest {
 
         assertTrue(userSlot.captured.contains("Title: Senior Kotlin Developer"))
         assertTrue(userSlot.captured.contains("Senior Kotlin engineer profile"))
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+        strings = [
+            "Fully remote work with flexible working hours.",
+            "Hybrid work with three mandatory office days per week.",
+            "We are unable to offer fully remote work.",
+        ],
+    )
+    fun `should send the complete description including late work arrangements`(workArrangement: String) {
+        stubChain()
+        val description =
+            "Build Java and Kotlin backend services.\n" +
+                "Design APIs, review code and maintain distributed systems.\n".repeat(200) +
+                workArrangement
+        val job = TestFixtures.jobEntity(description = description, remote = null)
+
+        evaluator.evaluate(job, TestFixtures.userPreferenceEntity(), singleLinkChain(chatClient))
+
+        assertTrue(userSlot.captured.contains("Description: $description\n"))
     }
 
     @Test
