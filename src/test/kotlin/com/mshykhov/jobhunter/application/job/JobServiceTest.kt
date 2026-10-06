@@ -12,6 +12,8 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.jpa.domain.Specification
@@ -192,6 +194,45 @@ class JobServiceTest {
             service.ingest(listOf(request))
 
             assertTrue(savedSlot.captured.isEmpty())
+        }
+
+        @ParameterizedTest
+        @CsvSource(
+            "true, null, true, false, 0",
+            "false, null, false, false, 0",
+            "true, null, true, true, 1",
+            "false, null, false, true, 1",
+            "true, false, false, false, 1",
+            "false, true, true, false, 1",
+            "null, true, true, false, 1",
+            "null, false, false, false, 1",
+            "null, null, null, false, 0",
+            nullValues = ["null"],
+        )
+        fun `should preserve known remote status when re-ingest has no remote evidence`(
+            existingRemote: Boolean?,
+            incomingRemote: Boolean?,
+            expectedRemote: Boolean?,
+            descriptionChanged: Boolean,
+            expectedSaveCount: Int,
+        ) {
+            val url = "https://example.com/remote-evidence"
+            val existing = TestFixtures.jobEntity(url = url, remote = existingRemote)
+            val request = TestFixtures.jobIngestRequest(
+                url = url,
+                remote = incomingRemote,
+                description = if (descriptionChanged) "Updated description" else existing.description,
+                publishedAt = null,
+            )
+            every { jobFacade.findByUrls(listOf(url)) } returns listOf(existing)
+            val saved = slot<List<JobEntity>>()
+            every { jobFacade.saveAll(capture(saved)) } answers { firstArg() }
+
+            val result = service.ingest(listOf(request))
+
+            assertEquals(expectedRemote, result.single().remote)
+            assertEquals(request.description, result.single().description)
+            assertEquals(expectedSaveCount, saved.captured.size)
         }
 
         @Test
