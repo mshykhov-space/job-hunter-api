@@ -139,12 +139,13 @@ class JobService(
         request: JobIngestRequest,
     ): Boolean {
         val parsedPublishedAt = parsePublishedAt(request.publishedAt)
+        val remote = request.remote ?: entity.remote
         val hasChanges =
             entity.title != request.title ||
                 entity.description != request.description ||
                 entity.salary != request.salary ||
                 entity.location != request.location ||
-                entity.remote != request.remote ||
+                entity.remote != remote ||
                 entity.rawData != request.rawData ||
                 (parsedPublishedAt != null && entity.publishedAt != parsedPublishedAt)
         if (!hasChanges) return false
@@ -154,7 +155,7 @@ class JobService(
         entity.rawData = request.rawData
         entity.salary = request.salary
         entity.location = request.location
-        entity.remote = request.remote
+        entity.remote = remote
         entity.publishedAt = parsedPublishedAt ?: entity.publishedAt
         return true
     }
