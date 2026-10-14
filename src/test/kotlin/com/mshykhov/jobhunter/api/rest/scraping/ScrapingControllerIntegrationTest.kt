@@ -73,7 +73,7 @@ class ScrapingControllerIntegrationTest : AbstractIntegrationTest() {
         val claimResult =
             mockMvc
                 .post("/scraping/sources/linkedin/claim") {
-                    with(authentication(token("write:jobs")))
+                    with(authentication(token("write:jobs", "read:criteria")))
                     contentType = MediaType.APPLICATION_JSON
                     content = """{"workerId":"worker-1"}"""
                 }.andExpect {
@@ -89,13 +89,13 @@ class ScrapingControllerIntegrationTest : AbstractIntegrationTest() {
         val leaseToken = claim["leaseToken"].asText()
 
         mockMvc.post("/scraping/runs/$runId/heartbeat") {
-            with(authentication(token("write:jobs")))
+            with(authentication(token("write:jobs", "read:criteria")))
             contentType = MediaType.APPLICATION_JSON
             content = """{"leaseToken":"$leaseToken"}"""
         }.andExpect { status { isNoContent() } }
 
         mockMvc.post("/scraping/runs/$runId/complete") {
-            with(authentication(token("write:jobs")))
+            with(authentication(token("write:jobs", "read:criteria")))
             contentType = MediaType.APPLICATION_JSON
             content = """{"leaseToken":"$leaseToken"}"""
         }.andExpect { status { isNoContent() } }
@@ -113,6 +113,12 @@ class ScrapingControllerIntegrationTest : AbstractIntegrationTest() {
     @Test
     fun `scopes distinguish worker mutations from status reads`() {
         mockMvc.post("/scraping/sources/linkedin/claim") {
+            with(authentication(token("read:jobs", "write:jobs")))
+            contentType = MediaType.APPLICATION_JSON
+            content = """{"workerId":"ordinary-user"}"""
+        }.andExpect { status { isForbidden() } }
+
+        mockMvc.post("/scraping/sources/linkedin/claim") {
             contentType = MediaType.APPLICATION_JSON
             content = """{"workerId":"worker"}"""
         }.andExpect { status { isUnauthorized() } }
@@ -124,14 +130,14 @@ class ScrapingControllerIntegrationTest : AbstractIntegrationTest() {
         }.andExpect { status { isForbidden() } }
 
         mockMvc.get("/scraping/status") {
-            with(authentication(token("write:jobs")))
+            with(authentication(token("write:jobs", "read:criteria")))
         }.andExpect { status { isForbidden() } }
     }
 
     @Test
     fun `invalid source payload and oversized batch return bad request`() {
         mockMvc.post("/scraping/sources/unknown/claim") {
-            with(authentication(token("write:jobs")))
+            with(authentication(token("write:jobs", "read:criteria")))
             contentType = MediaType.APPLICATION_JSON
             content = """{"workerId":"worker"}"""
         }.andExpect { status { isBadRequest() } }
@@ -139,7 +145,7 @@ class ScrapingControllerIntegrationTest : AbstractIntegrationTest() {
         val claim =
             mockMvc
                 .post("/scraping/sources/linkedin/claim") {
-                    with(authentication(token("write:jobs")))
+                    with(authentication(token("write:jobs", "read:criteria")))
                     contentType = MediaType.APPLICATION_JSON
                     content = """{"workerId":"worker"}"""
                 }.andReturn()
@@ -154,7 +160,7 @@ class ScrapingControllerIntegrationTest : AbstractIntegrationTest() {
                 "fetchedCount" to 251,
             )
         mockMvc.post("/scraping/runs/${claimJson["runId"].asText()}/batches") {
-            with(authentication(token("write:jobs")))
+            with(authentication(token("write:jobs", "read:criteria")))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsBytes(body)
         }.andExpect { status { isBadRequest() } }
@@ -163,7 +169,7 @@ class ScrapingControllerIntegrationTest : AbstractIntegrationTest() {
     @Test
     fun `batch request body is capped by bytes read from the stream`() {
         mockMvc.post("/scraping/runs/${UUID.randomUUID()}/batches") {
-            with(authentication(token("write:jobs")))
+            with(authentication(token("write:jobs", "read:criteria")))
             contentType = MediaType.APPLICATION_JSON
             content = "x".repeat(1_025)
             header("Transfer-Encoding", "chunked")
@@ -178,7 +184,7 @@ class ScrapingControllerIntegrationTest : AbstractIntegrationTest() {
         val claimResult =
             mockMvc
                 .post("/scraping/sources/linkedin/claim") {
-                    with(authentication(token("write:jobs")))
+                    with(authentication(token("write:jobs", "read:criteria")))
                     contentType = MediaType.APPLICATION_JSON
                     content = """{"workerId":"worker"}"""
                 }.andReturn()
@@ -202,7 +208,7 @@ class ScrapingControllerIntegrationTest : AbstractIntegrationTest() {
             )
 
         mockMvc.post("/scraping/runs/$runId/batches") {
-            with(authentication(token("write:jobs")))
+            with(authentication(token("write:jobs", "read:criteria")))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsBytes(invalidBatch)
         }.andExpect {
@@ -211,7 +217,7 @@ class ScrapingControllerIntegrationTest : AbstractIntegrationTest() {
         }
 
         mockMvc.post("/scraping/runs/$runId/heartbeat") {
-            with(authentication(token("write:jobs")))
+            with(authentication(token("write:jobs", "read:criteria")))
             contentType = MediaType.APPLICATION_JSON
             content = """{"leaseToken":"${UUID.randomUUID()}"}"""
         }.andExpect {

@@ -24,6 +24,7 @@ The API also contains authenticated contracts for separately deployed automation
 `docker-compose.yml` starts PostgreSQL on port 5440 with the local profile's database defaults. The example `.env` is a reference; `bootRun` does not load it automatically. Export settings into the process environment when overriding configuration. Set `OIDC_ENABLED=true` and provide `OIDC_ISSUERS` and `OIDC_AUDIENCE` when testing an OIDC-protected deployment. Scraping is disabled until `SCRAPING_ENABLED_SOURCES` lists deployed adapters. AI and material-encryption settings are optional unless their corresponding features are enabled.
 
 See the [documentation map](docs/README.md) for feature contracts and operational guides.
+For additional human accounts, follow [user onboarding](docs/user-onboarding.md).
 
 ## Verify
 

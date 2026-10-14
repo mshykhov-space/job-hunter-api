@@ -46,6 +46,7 @@ class DevAuthenticationFilter : OncePerRequestFilter() {
             listOf(
                 "read:jobs",
                 "write:jobs",
+                "manage:jobs",
                 "read:criteria",
                 "read:preferences",
                 "write:preferences",

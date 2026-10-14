@@ -25,7 +25,7 @@ import java.util.UUID
 @RequestMapping("/scraping")
 class ScrapingController(private val service: ScrapingService) {
     @PostMapping("/sources/{source}/claim")
-    @PreAuthorize("hasAuthority('SCOPE_write:jobs')")
+    @PreAuthorize("hasAuthority('SCOPE_write:jobs') and hasAuthority('SCOPE_read:criteria')")
     fun claim(
         @PathVariable source: String,
         @Valid @RequestBody request: ScrapingClaimRequest,
@@ -38,7 +38,7 @@ class ScrapingController(private val service: ScrapingService) {
     }
 
     @PostMapping("/runs/{runId}/heartbeat")
-    @PreAuthorize("hasAuthority('SCOPE_write:jobs')")
+    @PreAuthorize("hasAuthority('SCOPE_write:jobs') and hasAuthority('SCOPE_read:criteria')")
     fun heartbeat(
         @PathVariable runId: UUID,
         @Valid @RequestBody request: ScrapingLeaseRequest,
@@ -48,7 +48,7 @@ class ScrapingController(private val service: ScrapingService) {
     }
 
     @PostMapping("/runs/{runId}/batches")
-    @PreAuthorize("hasAuthority('SCOPE_write:jobs')")
+    @PreAuthorize("hasAuthority('SCOPE_write:jobs') and hasAuthority('SCOPE_read:criteria')")
     fun batch(
         @PathVariable runId: UUID,
         @Valid @RequestBody request: ScrapingBatchRequest,
@@ -56,7 +56,7 @@ class ScrapingController(private val service: ScrapingService) {
         ScrapingBatchResponse(service.batch(runId, request.leaseToken, request.toCommand()).acceptedCount)
 
     @PostMapping("/runs/{runId}/complete")
-    @PreAuthorize("hasAuthority('SCOPE_write:jobs')")
+    @PreAuthorize("hasAuthority('SCOPE_write:jobs') and hasAuthority('SCOPE_read:criteria')")
     fun complete(
         @PathVariable runId: UUID,
         @Valid @RequestBody request: ScrapingLeaseRequest,
@@ -66,7 +66,7 @@ class ScrapingController(private val service: ScrapingService) {
     }
 
     @PostMapping("/runs/{runId}/fail")
-    @PreAuthorize("hasAuthority('SCOPE_write:jobs')")
+    @PreAuthorize("hasAuthority('SCOPE_write:jobs') and hasAuthority('SCOPE_read:criteria')")
     fun fail(
         @PathVariable runId: UUID,
         @Valid @RequestBody request: ScrapingFailureRequest,

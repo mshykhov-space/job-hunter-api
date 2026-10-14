@@ -8,6 +8,7 @@ import com.mshykhov.jobhunter.application.ai.JobRelevanceEvaluator
 import com.mshykhov.jobhunter.application.ai.UserAiProviderService
 import com.mshykhov.jobhunter.application.ai.dto.JobRelevanceResult
 import com.mshykhov.jobhunter.application.common.AllProvidersFailedException
+import com.mshykhov.jobhunter.application.job.Category
 import com.mshykhov.jobhunter.application.job.JobEntity
 import com.mshykhov.jobhunter.application.job.JobFacade
 import com.mshykhov.jobhunter.application.job.JobGroupEntity
@@ -40,6 +41,7 @@ import org.springframework.ai.chat.client.ChatClient
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
+import java.util.Collections
 import kotlin.test.assertEquals
 
 class JobMatchingServiceTest {
@@ -75,6 +77,41 @@ class JobMatchingServiceTest {
 
     @Nested
     inner class ProcessUnmatchedJobs {
+        @Test
+        fun `should match LinkedIn only user and owner against their own sources and categories`() {
+            val owner = TestFixtures.userEntity("owner@example.test")
+            val secondUser = TestFixtures.userEntity("second@example.test")
+            val ownerCategory = Category("backend engineer")
+            val secondCategory = Category("virtual assistant")
+            val ownerGroup = testGroup("Backend engineer").apply { categories = setOf(ownerCategory) }
+            val secondGroup = testGroup("Virtual assistant").apply { categories = setOf(secondCategory) }
+            val ownerJob = testJob(title = ownerGroup.title, source = JobSource.DOU, group = ownerGroup)
+            val secondJob = testJob(title = secondGroup.title, source = JobSource.LINKEDIN, group = secondGroup)
+            val preferences =
+                listOf(
+                    TestFixtures.userPreferenceEntity(user = owner, categories = setOf(ownerCategory), matchWithAi = false),
+                    TestFixtures.userPreferenceEntity(
+                        user = secondUser,
+                        categories = setOf(secondCategory),
+                        disabledSources = JobSource.entries.filterNot { it == JobSource.LINKEDIN },
+                        matchWithAi = false,
+                    ),
+                )
+            val saved = Collections.synchronizedList(mutableListOf<UserJobGroupEntity>())
+
+            every { jobFacade.findUnmatched(200, 5) } returns listOf(ownerJob, secondJob)
+            every { jobFacade.findByGroupIds(listOf(ownerGroup.id, secondGroup.id), 1000, 5) } returns listOf(ownerJob, secondJob)
+            every { userPreferenceFacade.findAll() } returns preferences
+            every { userJobGroupFacade.findByGroupId(any()) } returns emptyList()
+            every { userJobGroupFacade.saveAll(any()) } answers { firstArg<List<UserJobGroupEntity>>().also { saved.addAll(it) } }
+            every { jobFacade.updateMatchedAt(any(), any()) } just Runs
+
+            assertEquals(MatchingOutcome.COMPLETED, service.processUnmatchedJobs())
+            assertEquals(setOf(owner.id to ownerGroup.id, secondUser.id to secondGroup.id), saved.map { it.user.id to it.group.id }.toSet())
+            verify { decisionFacade.upsert(secondUser, ownerGroup, listOf(ownerJob), DecisionOutcome.COLD_REJECTED, "source", null, null) }
+            verify { decisionFacade.upsert(owner, secondGroup, listOf(secondJob), DecisionOutcome.COLD_REJECTED, "category", null, null) }
+        }
+
         @Test
         fun `should do nothing when no unmatched jobs`() {
             every { jobFacade.findUnmatched(200, 5) } returns emptyList()

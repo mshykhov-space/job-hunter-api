@@ -37,13 +37,13 @@ class JobController(
     private val jobMatchingService: JobMatchingService,
 ) {
     @PostMapping("/ingest")
-    @PreAuthorize("hasAuthority('SCOPE_write:jobs')")
+    @PreAuthorize("hasAuthority('SCOPE_write:jobs') and hasAuthority('SCOPE_read:criteria')")
     fun ingest(
         @Valid @RequestBody request: List<JobIngestRequest>,
     ): List<JobResponse> = jobService.ingest(request).map { JobResponse.from(it) }
 
     @PostMapping("/check")
-    @PreAuthorize("hasAuthority('SCOPE_write:jobs')")
+    @PreAuthorize("hasAuthority('SCOPE_write:jobs') and hasAuthority('SCOPE_read:criteria')")
     fun checkJobs(
         @Valid @RequestBody requests: List<JobCheckRequest>,
     ): JobCheckResponse = jobService.checkJobs(requests)
@@ -78,7 +78,7 @@ class JobController(
     ): List<UserJobGroupResponse> = userJobGroupService.bulkUpdateGroupStatus(jwt.subject, request.groupIds, request.status)
 
     @PostMapping("/rematch")
-    @PreAuthorize("hasAuthority('SCOPE_write:jobs')")
+    @PreAuthorize("hasAuthority('SCOPE_manage:jobs')")
     fun rematch(
         @RequestParam(required = false) since: Instant?,
     ): RematchResponse {

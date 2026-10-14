@@ -12,7 +12,12 @@ Supported source IDs are `djinni`, `dou`, `euremotejobs`, `justjoinit`, `landing
 
 ## Worker API
 
-Mutation endpoints require `write:jobs`; status requires `read:jobs`.
+Mutation endpoints require both `write:jobs` and the machine-only `read:criteria`
+permission; status requires `read:jobs`. The same pair protects `/jobs/ingest` and
+`/jobs/check`. Personal job-write permission alone never grants access to the shared
+collection or scraping leases.
+Status is shared read-only health information for users with `read:jobs`; it
+includes worker identifiers and run counters but never lease tokens or criteria snapshots.
 
 | Endpoint | Result |
 |---|---|
