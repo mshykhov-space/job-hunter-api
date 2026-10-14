@@ -30,6 +30,10 @@ Save About and Search Criteria in Settings. For a LinkedIn-only user, enable
 `nofluffjobs`, and `web3career`. Search categories are literal LinkedIn query terms,
 so nontechnical roles can use terms such as `administrative assistant`,
 `operations assistant`, `virtual assistant`, and `customer support`.
+Generate Preferences uses target role titles for nontechnical profiles and core
+technologies for software profiles. General office and communication tools remain
+profile skills rather than search categories unless a specialist role is requested.
+Review generated suggestions before saving them.
 
 The scraper combines search criteria from users that enable the requested source.
 Collection and vacancies are shared; personal matches, review statuses, candidate

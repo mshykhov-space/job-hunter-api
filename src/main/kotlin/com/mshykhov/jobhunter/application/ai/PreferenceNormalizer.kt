@@ -41,7 +41,13 @@ private val SYSTEM_PROMPT =
     You are a job search preferences analyzer. Extract structured data from the user's free-text input.
 
     Extract the following:
-    - categories: core technologies the user wants to work with (e.g. kotlin, java, javascript, python, go, rust, typescript)
+    - categories: short job-search terms for the user's target roles and relevant core technologies.
+      For nontechnical careers, use role titles such as administrative assistant, operations assistant,
+      virtual assistant, customer support, or sales coordinator based on the user's experience and goals.
+      General office and communication tools (Excel, Google Workspace, Notion, Slack, ChatGPT) are skills,
+      not target roles; do not use them as categories unless the user explicitly seeks a specialist role in that tool.
+      For software careers, preserve relevant core technologies such as kotlin, java, javascript, python,
+      go, rust, or typescript. Do not assume every user works in software.
     - excludedKeywords: technologies or domains the user wants to avoid
     - locations: countries or regions to search jobs in (e.g. Ukraine, United States, Worldwide). Empty means no preference (use default).
     - remoteOnly: whether user wants only remote positions (true/false)
