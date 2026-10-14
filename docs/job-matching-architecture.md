@@ -5,7 +5,7 @@ How scraped jobs become per-user scored matches.
 ## Pipeline
 
 ```
-n8n scrapers ──POST /jobs/ingest──▶ JobEntity (dedup by URL)
+Kotlin scraper ──POST /scraping/runs/{id}/batches──▶ JobEntity (dedup by URL)
                                         │  grouped via JobGroupKeyComputer
                                         ▼
                                   JobGroupEntity (title, company, categories)
@@ -51,6 +51,7 @@ n8n scrapers ──POST /jobs/ingest──▶ JobEntity (dedup by URL)
 
 - **Group-level scoring** — one AI call per (group, user); representative = job with the longest description.
 - **Complete description** - scoring receives the representative's full description, including work-arrangement requirements at the end. Remote inference must not operate on a truncated prefix, which can hide both fully remote benefits and mandatory office attendance. Provider context-limit failures follow the existing bounded retry policy instead of silently dropping posting text.
+- **Candidate-specific calibration** - the shared scoring rules use each person's About, target categories, and custom instructions. Direct and related fit bands apply to that person's profession; the evaluator does not assume a software career. Explicit incompatible mandatory eligibility requirements score zero. A location label alone is not a residence restriction, and unknown eligibility is described as uncertain rather than invented. Scores of zero remain visible when the client's minimum score includes zero.
 - **Users without AI settings** get `aiRelevanceScore=0` with a cold-only reasoning marker.
 - **remoteOnly enforced twice** — cold filter rejects explicit `remote=false`; post-AI check rejects `inferredRemote=false`. AI backfills `job.remote` when null.
 - **Remote evidence survives ingestion** - an unknown incoming `remote` value preserves the stored flag, including AI inference. Explicit incoming `true` or `false` replaces it. V33 requeues matched groups whose longest-description candidate lost its remote flag, where a saved user match has a positive `AI_SCORED` decision and no posting retains `remote=true`. All postings in each affected group are requeued so the bounded matching scheduler evaluates the complete current group again; the migration never guesses a remote value from historical group decisions. Review statuses remain unchanged.

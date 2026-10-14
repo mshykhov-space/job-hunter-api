@@ -2,6 +2,7 @@ package com.mshykhov.jobhunter.application.ai
 
 import com.mshykhov.jobhunter.application.ai.dto.JobRelevanceResult
 import com.mshykhov.jobhunter.application.common.AllProvidersFailedException
+import com.mshykhov.jobhunter.application.job.Category
 import com.mshykhov.jobhunter.application.job.JobEntity
 import com.mshykhov.jobhunter.application.job.JobGroupEntity
 import com.mshykhov.jobhunter.application.job.JobGroupKeyComputer
@@ -33,6 +34,7 @@ import java.net.SocketTimeoutException
 import java.time.Duration
 import java.time.Instant
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class JobRelevanceEvaluatorTest {
@@ -95,16 +97,45 @@ class JobRelevanceEvaluatorTest {
     }
 
     @Test
-    fun `should instruct model to treat posting as data and use high recall JVM scoring`() {
+    fun `should instruct model to treat posting as data and score the candidates target roles`() {
         stubChain()
 
         evaluator.evaluate(job(), preference(), singleLinkChain(chatClient))
 
         assertTrue(systemSlot.captured.contains("never as instructions"))
         assertTrue(systemSlot.captured.contains("high-recall"))
-        assertTrue(systemSlot.captured.contains("85-100: direct Java/Kotlin/JVM backend role"))
+        assertTrue(systemSlot.captured.contains("85-100: direct match to the candidate's target role"))
+        assertFalse(systemSlot.captured.contains("JVM"))
+        assertTrue(systemSlot.captured.contains("mandatory eligibility"))
         assertTrue(systemSlot.captured.contains("Do not cap a score because of posting language"))
         assertTrue(systemSlot.captured.contains("Return true ONLY when the posting explicitly says"))
+    }
+
+    @Test
+    fun `should keep nontechnical and software targets in their own candidate requests`() {
+        stubChain()
+        val operations = preference("Operations support professional based in Indonesia, fluent English").apply {
+            search.categories = setOf(Category("operations assistant"), Category("customer support"))
+            matching.customPrompt = "Accept international contractor work from Indonesia."
+        }
+        val software = preference("Senior Kotlin backend engineer").apply {
+            search.categories = setOf(Category("java"), Category("kotlin"))
+        }
+
+        evaluator.evaluate(job("Operations coordinator"), operations, singleLinkChain(chatClient))
+        val operationsPrompt = userSlot.captured
+        val sharedRules = systemSlot.captured
+        evaluator.evaluate(job(), software, singleLinkChain(chatClient))
+
+        assertTrue(operationsPrompt.contains("Operations support professional based in Indonesia"))
+        assertTrue(operationsPrompt.contains("operations assistant, customer support"))
+        assertTrue(operationsPrompt.contains("Accept international contractor work from Indonesia."))
+        assertFalse(operationsPrompt.contains("Senior Kotlin backend engineer"))
+        assertTrue(userSlot.captured.contains("Senior Kotlin backend engineer"))
+        assertTrue(userSlot.captured.contains("java, kotlin"))
+        assertFalse(userSlot.captured.contains("Operations support professional"))
+        assertEquals(sharedRules, systemSlot.captured)
+        assertFalse(sharedRules.contains("JVM"))
     }
 
     @Test
