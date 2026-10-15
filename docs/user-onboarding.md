@@ -7,16 +7,23 @@ or imports a candidate profile. Do not create users with database scripts.
 ## Identity and access
 
 1. Confirm the exact Google account email with the person; the CV contact address
-   may be different. Create an active human account in Authentik with that login email.
-   Add only the `job-hunter-member` group. The existing `job-hunter-user` group
+   may be different. For a new identity, use the confirmed login email. For an
+   existing profile, preserve its canonical email and bind a different confirmed
+   Google email with the admin-only `google_login_email` attribute. Use the
+   infrastructure repository's `scripts/job-hunter-member.py` (dry-run, then
+   `--apply`); its procedure is in `terraform/authentik/config/applications/README.md`.
+   It provisions only the `job-hunter-member` group. The existing `job-hunter-user` group
    is reserved for the owner/operator; it includes `manage:jobs` and automation.
    Do not add infrastructure, database, monitoring, or machine-client groups.
 2. The person opens Job Hunter and selects sign-in. For an existing Gmail account,
-   the Google sign-in button links the pre-provisioned account by email. Unknown
-   Google accounts cannot self-register. Email/password access is also available
+   the Google sign-in button links the pre-provisioned account by verified email
+   or its approved alias, without requiring a local password. Unknown Google
+   accounts cannot self-register. Email/password access is also available
    through the existing password recovery flow after provisioning.
    A newly provisioned account has no local password. For email/password access,
    let the person set one through recovery before treating that login path as ready.
+   Entering an email alone does not authenticate the person: Google proves account
+   ownership, while the local login path requires a password.
 3. Verify the resulting token has personal job/preferences/settings permissions,
    with no `manage:jobs`, `read:criteria`, `read:proxies`, or automation permissions.
    Check that personal preferences are empty and the automation screen is absent.
@@ -27,7 +34,9 @@ or imports a candidate profile. Do not create users with database scripts.
 The current SPA provider uses email as its OIDC subject. Changing the account email
 changes the application's identity, so treat an email change as a migration rather
 than silently relinking personal data. Provider sessions and refresh tokens are
-configured for 30 days; explicit logout or provider revocation can end them sooner.
+configured for 30 days in both password and Google authentication flows; explicit
+logout or provider revocation can end them sooner. Short sessions issued before
+the configuration fix need a fresh login to receive the longer lifetime.
 
 ## Search and matching
 
