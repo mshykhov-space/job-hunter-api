@@ -6,7 +6,8 @@ or imports a candidate profile. Do not create users with database scripts.
 
 ## Identity and access
 
-1. Create an active human account in Authentik with the person's exact email.
+1. Confirm the exact Google account email with the person; the CV contact address
+   may be different. Create an active human account in Authentik with that login email.
    Add only the `job-hunter-member` group. The existing `job-hunter-user` group
    is reserved for the owner/operator; it includes `manage:jobs` and automation.
    Do not add infrastructure, database, monitoring, or machine-client groups.
@@ -14,9 +15,14 @@ or imports a candidate profile. Do not create users with database scripts.
    the Google sign-in button links the pre-provisioned account by email. Unknown
    Google accounts cannot self-register. Email/password access is also available
    through the existing password recovery flow after provisioning.
+   A newly provisioned account has no local password. For email/password access,
+   let the person set one through recovery before treating that login path as ready.
 3. Verify the resulting token has personal job/preferences/settings permissions,
    with no `manage:jobs`, `read:criteria`, `read:proxies`, or automation permissions.
    Check that personal preferences are empty and the automation screen is absent.
+   Verify a real first sign-in through the selected login method. Administrative
+   impersonation checks authorization and data access, but does not verify Google
+   account matching or password authentication.
 
 The current SPA provider uses email as its OIDC subject. Changing the account email
 changes the application's identity, so treat an email change as a migration rather
