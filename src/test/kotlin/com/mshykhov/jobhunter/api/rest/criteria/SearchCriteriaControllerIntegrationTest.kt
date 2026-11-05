@@ -8,13 +8,18 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType.APPLICATION_JSON
+import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.put
+import org.springframework.transaction.annotation.Transactional
 
 class SearchCriteriaControllerIntegrationTest : AbstractIntegrationTest() {
     @Autowired
     lateinit var mockMvc: MockMvc
+
+    @Autowired
+    lateinit var jdbcTemplate: JdbcTemplate
 
     @Nested
     inner class GetCriteria {
@@ -32,7 +37,9 @@ class SearchCriteriaControllerIntegrationTest : AbstractIntegrationTest() {
         }
 
         @Test
+        @Transactional
         fun `should return criteria reflecting saved preferences`() {
+            jdbcTemplate.update("DELETE FROM user_preferences")
             mockMvc
                 .put("/preferences/search") {
                     contentType = APPLICATION_JSON

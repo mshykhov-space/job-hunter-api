@@ -32,7 +32,8 @@ enum class AiModel(
     val contextWindow: Int,
     val recommended: Boolean = false,
 ) {
-    GPT_5_6_LUNA("gpt-5.6-luna", "GPT-5.6 Luna", AiProvider.CODEX, 0.0, 0.0, null, 400_000, recommended = true),
+    GPT_6_LUNA("gpt-6-luna", "GPT-6 Luna", AiProvider.CODEX, 0.0, 0.0, null, 1_050_000, recommended = true),
+    GPT_5_6_LUNA("gpt-5.6-luna", "GPT-5.6 Luna", AiProvider.CODEX, 0.0, 0.0, null, 400_000),
     GPT_5_6_SOL("gpt-5.6-sol", "GPT-5.6 Sol", AiProvider.CODEX, 0.0, 0.0, null, 400_000),
     GPT_5_6_TERRA("gpt-5.6-terra", "GPT-5.6 Terra", AiProvider.CODEX, 0.0, 0.0, null, 272_000),
     GROQ_GPT_OSS_120B("openai/gpt-oss-120b", "GPT-OSS 120B", AiProvider.GROQ, 0.0, 0.0, null, 131_072, recommended = true),
