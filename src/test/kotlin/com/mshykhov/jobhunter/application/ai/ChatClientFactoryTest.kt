@@ -1,9 +1,11 @@
 package com.mshykhov.jobhunter.application.ai
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.mshykhov.jobhunter.application.common.AiNotConfiguredException
 import com.mshykhov.jobhunter.application.settings.AiProvider
 import com.mshykhov.jobhunter.infrastructure.ai.AiProviderProperties
 import com.mshykhov.jobhunter.support.TestFixtures
+import com.sun.net.httpserver.HttpServer
 import io.micrometer.observation.Observation
 import io.micrometer.observation.ObservationHandler
 import io.micrometer.observation.ObservationRegistry
@@ -13,6 +15,8 @@ import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import org.springframework.ai.chat.observation.ChatModelObservationContext
+import java.net.InetSocketAddress
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -92,6 +96,43 @@ class ChatClientFactoryTest {
         @Test
         fun `should treat dotted gpt-5 point releases as reasoning models`() {
             assertTrue(ChatClientFactory.isReasoningModel("gpt-5.6-luna"))
+        }
+
+        @Test
+        fun `should send low reasoning and a completion token budget for GPT-6 Luna scoring`() {
+            val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+            val requestBody = AtomicReference<String>()
+            server.createContext("/v1/chat/completions") { exchange ->
+                requestBody.set(exchange.requestBody.bufferedReader().use { it.readText() })
+                val response =
+                    """
+                    {
+                      "id": "test",
+                      "model": "gpt-6-luna",
+                      "choices": [{"index": 0, "message": {"role": "assistant", "content": "ok"}, "finish_reason": "stop"}]
+                    }
+                    """.trimIndent().toByteArray()
+                exchange.responseHeaders.set("Content-Type", "application/json")
+                exchange.sendResponseHeaders(200, response.size.toLong())
+                exchange.responseBody.use { it.write(response) }
+            }
+            server.start()
+            try {
+                val properties = AiProviderProperties(codexBaseUrl = "http://127.0.0.1:${server.address.port}")
+                val factory = ChatClientFactory(properties, ObservationRegistry.NOOP)
+                val provider = TestFixtures.userAiProviderEntity(provider = AiProvider.CODEX, apiKey = "", modelId = "gpt-6-luna")
+
+                assertEquals("ok", factory.createForProvider(provider).prompt("ping").call().content())
+
+                val request = ObjectMapper().readTree(requestBody.get())
+                assertEquals("gpt-6-luna", request.path("model").asText())
+                assertEquals("low", request.path("reasoning_effort").asText())
+                assertEquals(500, request.path("max_completion_tokens").asInt())
+                assertFalse(request.has("temperature"))
+                assertFalse(request.has("max_tokens"))
+            } finally {
+                server.stop(0)
+            }
         }
 
         @Test

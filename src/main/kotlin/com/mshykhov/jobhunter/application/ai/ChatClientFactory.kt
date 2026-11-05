@@ -124,6 +124,7 @@ class ChatClientFactory(private val aiProviderProperties: AiProviderProperties, 
         // Non-OpenAI models (Claude, etc.) go through OpenAI-compatible API and receive temperature.
         internal fun isReasoningModel(modelId: String): Boolean =
             modelId.startsWith("gpt-5") ||
+                modelId.startsWith("gpt-6") ||
                 modelId.startsWith("o1") ||
                 modelId.startsWith("o3") ||
                 modelId.startsWith("o4")
